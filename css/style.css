@@ -1,0 +1,68 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family:story script, cursive;
+    font-weight: bold;
+}
+
+body {
+    background: rgb(233, 233, 217);
+    text-align: center;
+}
+
+header{
+    display: flex;
+    align-items: center;
+    position: relative;
+    height: 300px;
+}
+
+#logo {
+    display: flex;
+    width: 300px;
+    border-radius: 50%;
+    position: absolute;;
+}
+
+h1 {
+    font-size: 10rem;
+    margin-bottom: 1rem;
+    font-size: 100px;
+    border-top: solid 10px black;
+    border-bottom: solid 10px black;
+    background-color: rgb(222, 61, 61);
+    width: 100%;
+    -webkit-text-stroke: 2px rgb(233, 233, 217);
+    font-family: permanent Marker, cursive;
+}
+
+
+#banner-seksjon {
+    display:grid;
+}
+
+h2 {
+
+}
+
+.kategori-btn {
+    font-size: 30px;
+    padding: 10px
+}
+
+#meny-seksjon {
+    display: flex;
+}
+
+#kategori-meny {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#kvittering-modal.modal {
+    width: 19%;
+    border: 10px solid black;
+    border-radius:5px
+}

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Olsvik Kebab & Pizza</title>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+    <header class="admin-header">
+        <h1>Admin - Menystyring & Historikk</h1>
+        <nav>
+            <a href="kjokken.html" class="nav-lenke">Gå til Kjøkkenskjerm</a>
+            <a href="index.html" target="_blank" class="nav-lenke">Åpne Kundeside ↗</a>
+            <button id="loggut-btn" style="margin-left: 15px;">Logg ut</button>
+        </nav>
+    </header>
+
+    <main>
+
+        <section id="admin-historikk-seksjon">
+            <h2>Ordrehistorikk (Siste 12 timer)</h2>
+            <div id="historikk-liste-container" style="max-height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 6px; background: #f9f9f9;">
+                <p>Laster historikk...</p>
+            </div>
+        </section>
+
+        <section id="admin-banner-seksjon">
+            <h2>Administrer Dagens Tilbud (lysbilder)</h2>
+            <button id="vis-nytt-banner-skjema-btn">Legg til nytt lysbilde</button>
+
+            <div id="banner-skjema-container" style="display:none">
+                <h3 id="banner-skjema-tittel">Nytt lysbilde</h3>
+                <form id="banner-form">
+                    <input type="hidden" id="banner-id">
+
+                    <div>
+                        <label for="banner-tittel">Overskrift/ Tittel:</label>
+                        <input type="text" id="banner-tittel" required placeholder="f.eks. SUPER TIRSDAG!">
+                    </div>
+
+                    <div>
+                        <label for="banner-tekst">Beskrivelse/ Tekst:</label>
+                        <textarea id="banner-tekst" rows="2" placeholder="f.eks. Stor kebab + 0.5l brus til kun 159kr"></textarea>
+                    </div>
+
+                    <div>
+                        <label for="banner-bilde-url">Bilde/ gif URL:</label>
+                        <input type="url" id="banner-bilde-url" placeholder="https://eksempel.no/bilde.gif" required>
+                    </div>
+
+                    <div>
+                        <label for="banner-koblet-rett">Koble til menyrett (legges i handlekurv ved klikk):</label>
+                        <select id="banner-koblet-rett">
+                            <option value="">-- ingen kobling (kun visning) --</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="banner-aktiv">
+                            <input type="checkbox" id="banner-aktiv" checked> Vis på kundesiden
+                        </label>
+                    </div>
+
+                    <button type="submit" id="lagre-banner-btn">Lagre lysbilde</button>
+                    <button type="button" id="avbryt-banner-skjema-btn">Avbryt</button>
+
+                </form>
+
+            </div>
+
+            <div id="admin-banner-liste"></div>
+        </section>
+        
+        <section id="admin-kategori-seksjon">
+            <h2>Menykategorier</h2>
+            <nav id="kategori-meny">
+                <button class="kategori-btn" data-kategori="pizza">Pizza</button>
+                <button class="kategori-btn" data-kategori="kebab">Kebab</button>
+                <button class="kategori-btn" data-kategori="megameny">Megameny</button>
+                <button class="kategori-btn" data-kategori="drikke">Drikke</button>
+                <button class="kategori-btn" data-kategori="tilbehor">Tilbehør</button>
+            </nav>
+        </section>
+
+        <section id="admin-rett-håndtering">
+            <div id="kategori-tittel-container">
+                <h2 id="valgt-kategori-tittel">Velg en kategori over</h2>
+                <button id="vis-legg-til-skjema-btn" style="display: none;">+ Legg til ny rett</button>
+            </div>
+
+            <div id="skjema-container" style="display: none;">
+                <h3 id="skjema-tittel">Legg til ny rett</h3>
+                <form id="rett-form">
+                    <input type="hidden" id="rett-id">
+                    
+                    <div>
+                        <label for="rett-nummer">Nummer på rett (f.eks. 3 for Nr. 3):</label>
+                        <input type="number" id="rett-nummer" placeholder="Valgfritt">
+                    </div>
+
+                    <div>
+                        <label for="rett-navn">Navn på rett:</label>
+                        <input type="text" id="rett-navn" required>
+                    </div>
+
+                    <div>
+                        <label for="rett-pris">Pris (kr):</label>
+                        <input type="number" id="rett-pris" min="0" required>
+                    </div>
+
+                    <div>
+                        <label for="rett-bilde-fil">Velg bilde for rett (valgfritt):</label>
+                        <input type="file" id="rett-bilde-fil" accept="image/*">
+                    </div>
+
+                    <div>
+                        <label for="rett-sortering">Visningsrekkefølge (f.eks. 1, 2, 3...):</label>
+                        <input type="number" id="rett-sortering" value="1" min="1" required>
+                    </div>
+
+                    <div>
+                        <label for="rett-beskrivelse">Beskrivelse / Ingredienser:</label>
+                        <textarea id="rett-beskrivelse" rows="3"></textarea>
+                    </div>
+
+                    <button type="submit" id="lagre-rett-btn">Lagre rett</button>
+                    <button type="button" id="avbryt-skjema-btn">Avbryt</button>
+                </form>
+            </div>
+
+            <div id="admin-rett-liste"></div>
+        </section>
+    </main>
+
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/admin.js"></script>
+</body>
+</html>

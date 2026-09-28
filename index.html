@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olsvik Kebab & Pizza</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Story+Script&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header>
+        <img id="logo" src="Olsvik kebab&pizza.jpg" alt="Olsvik Kebab & Pizza Logo">
+        <h1>Olsvik Kebab & Pizza</h1>
+    </header>
+
+    <main>
+        <section id="banner-seksjon">
+            <h2>Dagens Tilbud</h2>
+            
+            <div id="karusell-container">
+                <button id="forrige-banner-btn" class="karusell-pil">&lt;</button>
+                
+                <div id="banner-innhold">
+                </div>
+
+                <button id="neste-banner-btn" class="karusell-pil">&gt;</button>
+            </div>
+
+            <div id="karusell-indikatorer">
+            </div>
+        </section>
+
+        <section id="meny-seksjon">
+            <nav id="kategori-meny">
+                <button class="kategori-btn" data-kategori="kebab">Kebab</button>
+                <button class="kategori-btn" data-kategori="pizza">Pizza</button>
+                <button class="kategori-btn" data-kategori="megameny">Megameny</button>
+                <button class="kategori-btn" data-kategori="drikke">Drikke</button>
+                <button class="kategori-btn" data-kategori="tilbehor">Tilbehør</button>
+            </nav>
+
+            <div id="meny-visning">
+                <p>Velg en kategori for å se menyen</p>
+            </div>
+        </section>
+
+        <section id="handlekurv-seksjon">
+            <h2>Din Bestilling</h2>
+            <div id="handlekurv-innhold">
+                <p>Handlekurven er tom.</p>
+            </div>
+            <button id="send-bestilling-btn" disabled>Send bestilling</button>
+        </section>
+        <div id="aktiv-ordre-banner" style="display: none;">
+            <button id="vis-kvittering-btn">Se din aktive ordre (#<span id="aktiv-ordre-id-kort"></span>)</button>
+        </div>
+
+        <div id="bestilling-modal" class="modal" style="display: none;">
+            <div class="modal-innhold">
+                <h2>Fullfør bestilling</h2>
+                <form id="bestilling-form">
+                    <div class="form-gruppe">
+                        <label for="kunde-navn">Navn:</label>
+                        <input type="text" id="kunde-navn" required placeholder="Ditt navn">
+                    </div>
+                    
+                    <div class="form-gruppe">
+                        <label for="kunde-tlf">Telefonnummer:</label>
+                        <input type="tel" id="kunde-tlf" required placeholder="Ditt telefonnummer">
+                    </div>
+
+                    <div class="form-gruppe">
+                        <label>Leveringsmåte:</label>
+                        <div class="radio-valg">
+                            <label><input type="radio" name="leveringstype" value="hente" checked> 🛍️ Henting i restaurant</label>
+                            <label><input type="radio" name="leveringstype" value="levering"> 🚗 Utkjøring</label>
+                        </div>
+                    </div>
+
+                    <div class="form-gruppe" id="adresse-container" style="display: none;">
+                        <label for="kunde-adresse">Leveringsadresse:</label>
+                        <input type="text" id="kunde-adresse" placeholder="Gateadresse og nummer">
+                    </div>
+
+                    <div class="modal-knapper">
+                        <button type="submit" id="bekreft-bestilling-btn">Bekreft og send</button>
+                        <button type="button" id="avbryt-bestilling-btn">Avbryt</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="kvittering-modal" class="modal" style="display: none;">
+            <div class="modal-innhold text-center">
+                <h2>Takk for bestillingen! 🎉</h2>
+                <p>Din bestilling er sendt direkte til kjøkkenet.</p>
+                
+                <div class="ordre-id-boks">
+                    <small>Din Referanse / Ordre-ID:</small>
+                    <h1 id="kvittering-ordre-id">#0000</h1>
+                </div>
+
+                <div id="kvittering-oppsummering"></div>
+
+                <p id="kvittering-status-tekst">Maten beregnes klar om ca. 15–20 minutter.</p>
+                <button id="lukk-kvittering-btn">Start ny bestilling / Lukk</button>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
