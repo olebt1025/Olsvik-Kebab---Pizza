@@ -1,0 +1,78 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isStaff() {
+      return request.auth != null;
+    }
+
+    function validOrder() {
+      let data = request.resource.data;
+      return data.keys().hasAll([
+          "kundenavn", "telefon", "type", "adresse",
+          "retter", "totalPris", "status", "opprettetDato"
+        ])
+        && data.keys().hasOnly([
+          "kundenavn", "telefon", "type", "adresse",
+          "retter", "totalPris", "status", "opprettetDato"
+        ])
+        && data.kundenavn is string
+        && data.kundenavn.size() > 0
+        && data.kundenavn.size() <= 50
+        && data.telefon is string
+        && data.telefon.size() >= 6
+        && data.telefon.size() <= 25
+        && data.type in ["hente", "levering"]
+        && data.adresse is string
+        && data.adresse.size() <= 200
+        && (data.type == "hente" || data.adresse.size() > 0)
+        && data.retter is list
+        && data.retter.size() > 0
+        && data.retter.size() <= 30
+        && data.totalPris is number
+        && data.totalPris >= 0
+        && data.status == "ny"
+        && data.opprettetDato == request.time;
+    }
+
+    function validStatusTransition() {
+      let previous = resource.data.status;
+      let next = request.resource.data.status;
+      return (previous == "ny" && next == "under_tilberedning")
+        || (previous == "under_tilberedning" && next == "klar")
+        || (previous == "klar" && next in ["klar_for_levering", "fullført"])
+        || (previous == "klar_for_levering" && next == "fullført");
+    }
+
+    function completingOrderAndRemovingContactDetails() {
+      return resource.data.status in ["klar", "klar_for_levering"]
+        && request.resource.data.status == "fullført"
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["status", "kundenavn", "telefon", "adresse"])
+        && !request.resource.data.keys().hasAny(["kundenavn", "telefon", "adresse"]);
+    }
+
+    match /meny/{documentId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    match /banners/{documentId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    match /bestillinger/{documentId} {
+      allow create: if validOrder();
+      allow read, delete: if isStaff();
+      allow update: if isStaff() && (
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"])
+          && request.resource.data.diff(resource.data).affectedKeys().hasAny(["status"])
+          && validStatusTransition()
+        )
+        || completingOrderAndRemovingContactDetails()
+      );
+    }
+  }
+}

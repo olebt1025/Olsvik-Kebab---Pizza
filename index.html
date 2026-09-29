@@ -7,10 +7,7 @@
     <link rel="stylesheet" href="./css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Story+Script&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700;800&family=Permanent+Marker&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -20,7 +17,7 @@
     </header>
 
     <main>
-        <section id="banner-seksjon">
+        <section id="banner-seksjon" hidden>
             <h2>Dagens Tilbud</h2>
             
             <div id="karusell-container">
@@ -37,12 +34,12 @@
         </section>
 
         <section id="meny-seksjon">
-            <nav id="kategori-meny">
-                <button class="kategori-btn" data-kategori="kebab">Kebab</button>
-                <button class="kategori-btn" data-kategori="pizza">Pizza</button>
-                <button class="kategori-btn" data-kategori="megameny">Megameny</button>
-                <button class="kategori-btn" data-kategori="drikke">Drikke</button>
-                <button class="kategori-btn" data-kategori="tilbehor">Tilbehør</button>
+            <nav id="kategori-meny" aria-label="Velg meny kategori">
+                <button class="kategori-btn" data-kategori="kebab" aria-pressed="false">Kebab</button>
+                <button class="kategori-btn" data-kategori="pizza" aria-pressed="false">Pizza</button>
+                <button class="kategori-btn" data-kategori="megameny" aria-pressed="false">Megameny</button>
+                <button class="kategori-btn" data-kategori="drikke" aria-pressed="false">Drikke</button>
+                <button class="kategori-btn" data-kategori="tilbehor" aria-pressed="false">Tilbehør</button>
             </nav>
 
             <div id="meny-visning">
@@ -66,8 +63,8 @@
                 <h2>Fullfør bestilling</h2>
                 <form id="bestilling-form">
                     <div class="form-gruppe">
-                        <label for="kunde-navn">Navn:</label>
-                        <input type="text" id="kunde-navn" required placeholder="Ditt navn">
+                        <label for="kunde-navn">Fornavn:</label>
+                        <input type="text" id="kunde-navn" required maxlength="50" autocomplete="given-name" placeholder="Ditt fornavn">
                     </div>
                     
                     <div class="form-gruppe">

@@ -1,4 +1,5 @@
 import { db } from "./firebase-config.js";
+import { escapeHTML, safeImageUrl } from "./dom-utils.js";
 import { 
     collection, 
     getDocs, 
@@ -12,6 +13,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // DOM-elementer for Karusell
+const bannerSeksjon = document.getElementById("banner-seksjon");
 const bannerInnhold = document.getElementById("banner-innhold");
 const forrigeBtn = document.getElementById("forrige-banner-btn");
 const nesteBtn = document.getElementById("neste-banner-btn");
@@ -58,16 +60,14 @@ visKvitteringBtn.addEventListener("click", opneKvitteringModal);
 
 // Radioknapper for type levering
 document.querySelectorAll('input[name="leveringstype"]').forEach(radio => {
-    radio.addEventListener("change", (e) => {
-        if (e.target.value === "levering") {
-            adresseContainer.style.display = "block";
-            kundeAdresseInput.required = true;
-        } else {
-            adresseContainer.style.display = "none";
-            kundeAdresseInput.required = false;
-        }
-    });
+    radio.addEventListener("change", oppdaterAdresseFelt);
 });
+
+function oppdaterAdresseFelt() {
+    const levering = document.querySelector('input[name="leveringstype"]:checked').value === "levering";
+    adresseContainer.style.display = levering ? "block" : "none";
+    kundeAdresseInput.required = levering;
+}
 
 // ==========================================
 // KARUSELL-LOGIKK (3 sekunder rotering)
@@ -84,16 +84,18 @@ async function hentAktiveBannere() {
         });
 
         if (aktiveBannere.length === 0) {
-            bannerInnhold.innerHTML = "<p>Ingen aktuelt tilbud akkurat nå.</p>";
+            bannerSeksjon.hidden = true;
             return;
         }
 
+        bannerSeksjon.hidden = false;
         visBanner(0);
         opprettIndikatorer();
         startKarusell();
 
     } catch (error) {
         console.error("Feil ved henting av tilbud:", error);
+        bannerSeksjon.hidden = false;
         bannerInnhold.innerHTML = "<p>Kunne ikke laste tilbud.</p>";
     }
 }
@@ -106,9 +108,9 @@ function visBanner(indeks) {
 
     bannerInnhold.innerHTML = `
         <div class="banner-kort" style="cursor: ${banner.kobletRettId ? 'pointer' : 'default'};">
-            <img src="${banner.bildeUrl}" alt="${banner.tittel}" style="max-height: 180px; width: 100%; object-fit: cover;">
-            <h3>${banner.tittel}</h3>
-            <p>${banner.tekst || ''}</p>
+            <img src="${escapeHTML(safeImageUrl(banner.bildeUrl))}" alt="${escapeHTML(banner.tittel)}" style="max-height: 180px; width: 100%; object-fit: cover;">
+            <h3>${escapeHTML(banner.tittel)}</h3>
+            <p>${escapeHTML(banner.tekst)}</p>
             ${banner.kobletRettId ? '<small><em>Klikk her for å legge tilbudet i handlekurven!</em></small>' : ''}
         </div>
     `;
@@ -194,6 +196,9 @@ async function leggKobletRettIHandlekurv(rettId) {
 kategoriKnapper.forEach(knapp => {
     knapp.addEventListener("click", () => {
         const kategori = knapp.dataset.kategori;
+        kategoriKnapper.forEach(kategoriKnapp => {
+            kategoriKnapp.setAttribute("aria-pressed", String(kategoriKnapp === knapp));
+        });
         hentMenyForKategori(kategori);
     });
 });
@@ -223,11 +228,11 @@ async function hentMenyForKategori(kategori) {
             kort.className = "meny-kort";
             
             kort.innerHTML = `
-                ${rett.bildeUrl ? `<img src="${rett.bildeUrl}" alt="${rett.navn}" class="rett-bilde" style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;">` : ''}
+                ${rett.bildeUrl && safeImageUrl(rett.bildeUrl) ? `<img src="${escapeHTML(safeImageUrl(rett.bildeUrl))}" alt="${escapeHTML(rett.navn)}" class="rett-bilde" style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;">` : ''}
                 <div>
-                    <strong>${rett.nummer ? 'Nr. ' + rett.nummer + ' - ' : ''}${rett.navn}</strong>
-                    <p>${rett.beskrivelse || ''}</p>
-                    <span>${rett.pris} kr</span>
+                    <strong>${rett.nummer ? 'Nr. ' + escapeHTML(rett.nummer) + ' - ' : ''}${escapeHTML(rett.navn)}</strong>
+                    <p>${escapeHTML(rett.beskrivelse)}</p>
+                    <span>${escapeHTML(rett.pris)} kr</span>
                 </div>
                 <button class="legg-til-btn">Legg til</button>
             `;
@@ -263,7 +268,7 @@ function oppdaterHandlekurvVisning() {
         const rad = document.createElement("div");
         rad.className = "handlekurv-rad";
         rad.innerHTML = `
-            <span>${rett.navn} - ${rett.pris} kr</span>
+            <span>${escapeHTML(rett.navn)} - ${escapeHTML(rett.pris)} kr</span>
             <button class="fjern-btn">Fjern</button>
         `;
 
@@ -277,7 +282,7 @@ function oppdaterHandlekurvVisning() {
 
     const totalElement = document.createElement("div");
     totalElement.className = "handlekurv-total";
-    totalElement.innerHTML = `<strong>Total: ${totalPris} kr</strong>`;
+    totalElement.innerHTML = `<strong>Total: ${escapeHTML(totalPris)} kr</strong>`;
     handlekurvInnhold.appendChild(totalElement);
 
     sendBestillingBtn.disabled = false;
@@ -304,7 +309,13 @@ async function handterFormInnsending(e) {
     const leveringstype = document.querySelector('input[name="leveringstype"]:checked').value;
     const adresse = leveringstype === "levering" ? kundeAdresseInput.value.trim() : "";
 
-    const totalPris = handlekurv.reduce((sum, rett) => sum + rett.pris, 0);
+    const retter = handlekurv.map(rett => ({
+        id: rett.id,
+        navn: rett.navn,
+        pris: rett.pris,
+        antall: 1
+    }));
+    const totalPris = retter.reduce((sum, rett) => sum + rett.pris, 0);
 
     const submitBtn = document.getElementById("bekreft-bestilling-btn");
     submitBtn.disabled = true;
@@ -316,8 +327,8 @@ async function handterFormInnsending(e) {
             telefon: telefon,
             type: leveringstype,
             adresse: adresse,
-            retter: handlekurv,
-            totalPris: totalPris,
+            retter,
+            totalPris,
             status: "ny",
             opprettetDato: serverTimestamp()
         });
@@ -328,7 +339,7 @@ async function handterFormInnsending(e) {
         const bestillingsData = {
             id: kortOrdreId,
             fullId: docRef.id,
-            retter: handlekurv,
+            retter,
             totalPris: totalPris,
             leveringstype: leveringstype,
             tidspunkt: Date.now()
@@ -340,6 +351,7 @@ async function handterFormInnsending(e) {
         oppdaterHandlekurvVisning();
         lukkBestillingModal();
         bestillingForm.reset();
+        oppdaterAdresseFelt();
 
         // Vis kvittering
         visKvitteringForOrdre(bestillingsData);
@@ -384,7 +396,8 @@ function visKvitteringForOrdre(data) {
     
     let retterHTML = "<ul>";
     data.retter.forEach(r => {
-        retterHTML += `<li>${r.navn} (${r.pris} kr)</li>`;
+        const mengde = Number.isInteger(r.antall) && r.antall > 1 ? `${r.antall} x ` : "";
+        retterHTML += `<li>${escapeHTML(mengde)}${escapeHTML(r.navn)} (${escapeHTML(r.pris)} kr)</li>`;
     });
     retterHTML += "</ul>";
 
@@ -392,7 +405,7 @@ function visKvitteringForOrdre(data) {
         <p><strong>Måte:</strong> ${data.leveringstype === 'levering' ? '🚗 Utkjøring' : '🛍️ Henting'}</p>
         <p><strong>Bestilte varer:</strong></p>
         ${retterHTML}
-        <p><strong>Total: ${data.totalPris} kr</strong></p>
+        <p><strong>Total: ${escapeHTML(data.totalPris)} kr</strong></p>
     `;
 
     sjekkEksisterendeOrdre();

@@ -4,6 +4,7 @@ import {
     onSnapshot, 
     doc, 
     updateDoc, 
+    deleteField,
     query, 
     where,
     orderBy
@@ -22,8 +23,11 @@ const auth = getAuth();
 
 onAuthStateChanged(auth, (user) => {
     if (!user) {
-        window.location.href = "login.html";
+        window.location.replace("index.html");
+        return;
     }
+
+    document.body.classList.remove("auth-pending");
 });
 
 // Utlogging
@@ -36,6 +40,7 @@ if (loggutBtn) {
 const listeNy = document.getElementById("liste-ny");
 const listeLager = document.getElementById("liste-lager");
 const listeKlar = document.getElementById("liste-klar");
+const listeUtkjoring = document.getElementById("liste-utkjoring");
 
 // Lytter på aktive bestillinger i sanntid
 startOrdreLytter();
@@ -43,7 +48,7 @@ startOrdreLytter();
 function startOrdreLytter() {
     const q = query(
         collection(db, "bestillinger"), 
-        where("status", "in", ["ny", "under_tilberedning", "klar"]),
+        where("status", "in", ["ny", "under_tilberedning", "klar", "klar_for_levering"]),
         orderBy("opprettetDato", "asc")
     );
 
@@ -51,6 +56,7 @@ function startOrdreLytter() {
         listeNy.innerHTML = "";
         listeLager.innerHTML = "";
         listeKlar.innerHTML = "";
+        listeUtkjoring.innerHTML = "";
 
         if (snapshot.empty) {
             listeNy.innerHTML = "<p>Ingen aktive bestillinger.</p>";
@@ -68,57 +74,110 @@ function startOrdreLytter() {
 
 function tegnOrdreKort(ordre) {
     const kort = document.createElement("div");
-    kort.className = `ordre-kort status-${ordre.status}`;
+    kort.className = `ordre-kort status-${["ny", "under_tilberedning", "klar", "klar_for_levering"].includes(ordre.status) ? ordre.status : "ny"}`;
 
     const tid = ordre.opprettetDato ? new Date(ordre.opprettetDato.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--";
     const leveringTekst = ordre.leveringstype === "levering" || ordre.type === "levering" ? "🚗 Utkjøring" : "🛍️ Henting";
 
-    let retterHTML = "";
-    if (ordre.retter && Array.isArray(ordre.retter)) {
-        retterHTML = ordre.retter.map(r => `<li>${r.navn} (${r.pris} kr)</li>`).join("");
+    const header = document.createElement("div");
+    header.className = "ordre-header";
+    const orderId = document.createElement("strong");
+    orderId.textContent = `Ordre #${ordre.id.slice(-4).toUpperCase()}`;
+    const time = document.createElement("span");
+    time.textContent = tid;
+    header.append(orderId, time);
+
+    const type = document.createElement("p");
+    type.className = "ordre-type";
+    const typeText = document.createElement("strong");
+    typeText.textContent = leveringTekst;
+    type.appendChild(typeText);
+
+    const kundeInfo = document.createElement("div");
+    kundeInfo.className = "kunde-info";
+    const leggTilKundeInfo = (etikett, verdi) => {
+        const avsnitt = document.createElement("p");
+        const sterk = document.createElement("strong");
+        sterk.textContent = `${etikett}: `;
+        avsnitt.append(sterk, verdi);
+        kundeInfo.appendChild(avsnitt);
+    };
+    leggTilKundeInfo("Kunde", ordre.kundenavn || "Anonym");
+
+    const telefon = ordre.telefon || "Ikke oppgitt";
+    const telefonLenke = document.createElement("a");
+    telefonLenke.href = `tel:${telefon}`;
+    telefonLenke.textContent = telefon;
+    const telefonAvsnitt = document.createElement("p");
+    const telefonEtikett = document.createElement("strong");
+    telefonEtikett.textContent = "Tlf: ";
+    telefonAvsnitt.append(telefonEtikett, telefonLenke);
+    kundeInfo.appendChild(telefonAvsnitt);
+
+    if (ordre.leveringstype === "levering" || ordre.type === "levering") {
+        leggTilKundeInfo("Adresse", ordre.adresse || "Ikke oppgitt");
     }
 
-    kort.innerHTML = `
-        <div class="ordre-header">
-            <strong>Ordre #${ordre.id.slice(-4).toUpperCase()}</strong>
-            <span>${tid}</span>
-        </div>
-        <p class="ordre-type"><strong>${leveringTekst}</strong></p>
-        
-        <div class="kunde-info">
-            <p><strong>Kunde:</strong> ${ordre.kundenavn || 'Anonym'}</p>
-            <p><strong>Tlf:</strong> <a href="tel:${ordre.telefon}">${ordre.telefon || 'Ikke oppgitt'}</a></p>
-            ${(ordre.leveringstype === "levering" || ordre.type === "levering") ? `<p><strong>Adresse:</strong> ${ordre.adresse || 'Ikke oppgitt'}</p>` : ''}
-        </div>
+    const retterListe = document.createElement("ul");
+    retterListe.className = "ordre-retter";
+    if (Array.isArray(ordre.retter)) {
+        ordre.retter.forEach(rett => {
+            const vare = document.createElement("li");
+            const mengde = Number.isInteger(rett.antall) && rett.antall > 1 ? `${rett.antall} x ` : "";
+            vare.textContent = `${mengde}${rett.navn} (${rett.pris} kr)`;
+            retterListe.appendChild(vare);
+        });
+    }
 
-        <ul class="ordre-retter">
-            ${retterHTML}
-        </ul>
+    const total = document.createElement("p");
+    total.className = "ordre-total";
+    const totalTekst = document.createElement("strong");
+    totalTekst.textContent = `Total: ${ordre.totalPris || 0} kr`;
+    total.appendChild(totalTekst);
 
-        <p class="ordre-total"><strong>Total:</strong> ${ordre.totalPris || 0} kr</p>
-        
-        <div class="ordre-handlinger">
-            ${genererKnapperHTML(ordre.status, ordre.id, ordre.leveringstype || ordre.type)}
-        </div>
-    `;
+    const handlinger = document.createElement("div");
+    handlinger.className = "ordre-handlinger";
+    const statusKnapp = genererStatusKnapp(ordre.status, ordre.leveringstype || ordre.type);
+    if (statusKnapp) handlinger.appendChild(statusKnapp);
+
+    kort.append(header, type, kundeInfo, retterListe, total, handlinger);
 
     leggTilKnappLyttere(kort, ordre.id);
 
     if (ordre.status === "ny") listeNy.appendChild(kort);
     else if (ordre.status === "under_tilberedning") listeLager.appendChild(kort);
     else if (ordre.status === "klar") listeKlar.appendChild(kort);
+    else if (ordre.status === "klar_for_levering") listeUtkjoring.appendChild(kort);
 }
 
-function genererKnapperHTML(status, id, type) {
+function genererStatusKnapp(status, type) {
+    const knapp = document.createElement("button");
+    knapp.className = "btn-status";
+
     if (status === "ny") {
-        return `<button class="btn-status" data-id="${id}" data-neste="under_tilberedning">Start laget</button>`;
+        knapp.dataset.neste = "under_tilberedning";
+        knapp.textContent = "Start laget";
     } else if (status === "under_tilberedning") {
-        return `<button class="btn-status" data-id="${id}" data-neste="klar">Markér klar</button>`;
+        knapp.dataset.neste = "klar";
+        knapp.textContent = "Markér klar";
+    } else if (status === "klar_for_levering") {
+        knapp.classList.add("btn-fullfor");
+        knapp.dataset.neste = "fullført";
+        knapp.textContent = "Markér levert";
     } else if (status === "klar") {
-        const fullfortTekst = type === "levering" ? "Send til utkjøring" : "Markér utlevert / fullført";
-        return `<button class="btn-status btn-fullfor" data-id="${id}" data-neste="${type === 'levering' ? 'klar_for_levering' : 'fullført'}">${fullfortTekst}</button>`;
+        if (type === "levering") {
+            knapp.dataset.neste = "klar_for_levering";
+            knapp.textContent = "Send til utkjøring";
+        } else {
+            knapp.classList.add("btn-fullfor");
+            knapp.dataset.neste = "fullført";
+            knapp.textContent = "Markér utlevert / fullført";
+        }
+    } else {
+        return null;
     }
-    return "";
+
+    return knapp;
 }
 
 function leggTilKnappLyttere(kort, ordreId) {
@@ -134,9 +193,13 @@ function leggTilKnappLyttere(kort, ordreId) {
 async function oppdaterOrdreStatus(ordreId, nyStatus) {
     try {
         const ordreRef = doc(db, "bestillinger", ordreId);
-        await updateDoc(ordreRef, {
-            status: nyStatus
-        });
+        const oppdatering = { status: nyStatus };
+        if (nyStatus === "fullført") {
+            oppdatering.kundenavn = deleteField();
+            oppdatering.telefon = deleteField();
+            oppdatering.adresse = deleteField();
+        }
+        await updateDoc(ordreRef, oppdatering);
     } catch (error) {
         console.error("Feil ved oppdatering av status:", error);
         alert("Kunne ikke oppdatere status. Prøv igjen.");

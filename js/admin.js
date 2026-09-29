@@ -1,4 +1,5 @@
 import { db } from "./firebase-config.js";
+import { safeImageUrl } from "./dom-utils.js";
 import { 
     collection, 
     addDoc, 
@@ -25,8 +26,11 @@ const auth = getAuth();
 
 onAuthStateChanged(auth, (user) => {
     if (!user) {
-        window.location.href = "login.html";
+        window.location.replace("index.html");
+        return;
     }
+
+    document.body.classList.remove("auth-pending");
 });
 
 // Utlogging
@@ -143,29 +147,39 @@ async function hentHistorikkSiste12Timer() {
                 tidTekst = datoObj.toLocaleTimeString("no-NO", { hour: '2-digit', minute: '2-digit' });
             }
 
-            // Vareliste-oppsummering
-            let retterTekst = ordre.retter ? ordre.retter.map(r => r.navn).join(", ") : "Ingen varer";
-
             const kort = document.createElement("details");
-            kort.style.background = "#fff";
-            kort.style.border = "1px solid #ddd";
-            kort.style.marginBottom = "8px";
-            kort.style.padding = "8px 12px";
-            kort.style.borderRadius = "4px";
+            kort.className = "historikk-ordre";
 
-            kort.innerHTML = `
-                <summary style="cursor: pointer; font-weight: bold; display: flex; justify-content: space-between;">
-                    <span>#${kortId} - ${ordre.kundenavn || 'Ukjent'} (${tidTekst})</span>
-                    <span style="color: #666;">${ordre.totalPris || 0} kr | Status: ${ordre.status || 'ny'}</span>
-                </summary>
-                <div style="margin-top: 10px; font-size: 0.9em; border-top: 1px solid #eee; padding-top: 8px;">
-                    <p><strong>Telefon:</strong> ${ordre.telefon || 'Ikke oppgitt'}</p>
-                    <p><strong>Type:</strong> ${ordre.type === 'levering' ? '🚗 Utkjøring' : '🛍️ Henting'}</p>
-                    ${ordre.adresse ? `<p><strong>Adresse:</strong> ${ordre.adresse}</p>` : ''}
-                    <p><strong>Bestilte varer:</strong> ${retterTekst}</p>
-                    <small style="color: #888;">Full ID: ${fullId}</small>
-                </div>
-            `;
+            const summary = document.createElement("summary");
+            const summaryTitle = document.createElement("span");
+            summaryTitle.textContent = `#${kortId} - ${ordre.kundenavn || "Ukjent"} (${tidTekst})`;
+            const summaryStatus = document.createElement("span");
+            summaryStatus.style.color = "#666";
+            summaryStatus.textContent = `${ordre.totalPris || 0} kr | Status: ${ordre.status || "ny"}`;
+            summary.append(summaryTitle, summaryStatus);
+
+            const detaljer = document.createElement("div");
+            detaljer.className = "historikk-ordre-detaljer";
+            const leggTilOpplysning = (etikett, verdi) => {
+                const avsnitt = document.createElement("p");
+                const sterk = document.createElement("strong");
+                sterk.textContent = `${etikett}:`;
+                avsnitt.append(sterk, ` ${verdi}`);
+                detaljer.appendChild(avsnitt);
+            };
+
+            leggTilOpplysning("Telefon", ordre.telefon || "Ikke oppgitt");
+            leggTilOpplysning("Type", ordre.type === "levering" ? "Utkjøring" : "Henting");
+            if (ordre.adresse) leggTilOpplysning("Adresse", ordre.adresse);
+            leggTilOpplysning("Bestilte varer", ordre.retter
+                ? ordre.retter.map(r => `${Number.isInteger(r.antall) && r.antall > 1 ? `${r.antall} x ` : ""}${r.navn}`).join(", ")
+                : "Ingen varer");
+
+            const fullIdElement = document.createElement("small");
+            fullIdElement.className = "historikk-ordre-id";
+            fullIdElement.textContent = `Full ID: ${fullId}`;
+            detaljer.appendChild(fullIdElement);
+            kort.append(summary, detaljer);
 
             historikkListeContainer.appendChild(kort);
         });
@@ -260,20 +274,25 @@ async function hentMenyForKategori(kategori) {
             
             const element = document.createElement("div");
             element.className = "admin-rett-kort";
-            element.innerHTML = `
-                <div>
-                    <strong>${rett.nummer ? 'Nr. ' + rett.nummer + ' - ' : ''}${rett.navn}</strong> (${rett.pris} kr)
-                    <p>${rett.beskrivelse || ''}</p>
-                    <small>Rekkefølge: ${rett.sortering}</small>
-                </div>
-                <div class="handling-knapper">
-                    <button class="rediger-btn">Rediger</button>
-                    <button class="slett-btn">Slett</button>
-                </div>
-            `;
+            const informasjon = document.createElement("div");
+            const navn = document.createElement("strong");
+            navn.textContent = `${rett.nummer ? `Nr. ${rett.nummer} - ` : ""}${rett.navn} (${rett.pris} kr)`;
+            const beskrivelse = document.createElement("p");
+            beskrivelse.textContent = rett.beskrivelse || "";
+            const sortering = document.createElement("small");
+            sortering.textContent = `Rekkefølge: ${rett.sortering}`;
+            informasjon.append(navn, beskrivelse, sortering);
 
-            const redigerBtn = element.querySelector(".rediger-btn");
-            const slettBtn = element.querySelector(".slett-btn");
+            const handlinger = document.createElement("div");
+            handlinger.className = "handling-knapper";
+            const redigerBtn = document.createElement("button");
+            redigerBtn.className = "rediger-btn";
+            redigerBtn.textContent = "Rediger";
+            const slettBtn = document.createElement("button");
+            slettBtn.className = "slett-btn";
+            slettBtn.textContent = "Slett";
+            handlinger.append(redigerBtn, slettBtn);
+            element.append(informasjon, handlinger);
 
             redigerBtn.addEventListener("click", () => fyllSkjemaForRedigering(rettId, rett));
             
@@ -376,20 +395,28 @@ async function hentAlleBannere() {
 
             const element = document.createElement("div");
             element.className = "admin-banner-kort";
-            element.innerHTML = `
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <img src="${banner.bildeUrl}" alt="${banner.tittel}" style="width: 60px; height: 60px; object-fit: cover;">
-                    <div>
-                        <strong>${banner.tittel}</strong> (${banner.aktiv ? 'Aktiv' : 'Skjult'})
-                        <p>${banner.tekst || ''}</p>
-                    </div>
-                </div>
-                <div>
-                    <button class="slett-banner-btn">Slett</button>
-                </div>
-            `;
+            const bannerInformasjon = document.createElement("div");
+            bannerInformasjon.className = "admin-banner-informasjon";
+            const bilde = document.createElement("img");
+            const bildeUrl = safeImageUrl(banner.bildeUrl);
+            if (bildeUrl) bilde.src = bildeUrl;
+            bilde.alt = banner.tittel || "";
+            bilde.className = "admin-banner-bilde";
+            const tekst = document.createElement("div");
+            const tittel = document.createElement("strong");
+            tittel.textContent = `${banner.tittel} (${banner.aktiv ? "Aktiv" : "Skjult"})`;
+            const beskrivelse = document.createElement("p");
+            beskrivelse.textContent = banner.tekst || "";
+            tekst.append(tittel, beskrivelse);
+            if (bildeUrl) bannerInformasjon.appendChild(bilde);
+            bannerInformasjon.appendChild(tekst);
 
-            const slettBtn = element.querySelector(".slett-banner-btn");
+            const bannerHandlinger = document.createElement("div");
+            const slettBtn = document.createElement("button");
+            slettBtn.className = "slett-banner-btn";
+            slettBtn.textContent = "Slett";
+            bannerHandlinger.appendChild(slettBtn);
+            element.append(bannerInformasjon, bannerHandlinger);
             let slettSikker = false;
             slettBtn.addEventListener("click", async () => {
                 if (!slettSikker) {

@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kjøkkenskjerm - Olsvik Kebab & Pizza</title>
     <link rel="stylesheet" href="./css/kjokken.css">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body class="kjokken-body">
+<body class="kjokken-body auth-pending">
 
     <header class="kjokken-header">
         <h1>Kjøkkenskjerm (Ordre)</h1>
@@ -33,6 +36,11 @@
         <section class="ordre-kolonne" id="kolonne-klar">
             <h2>Klar</h2>
             <div class="ordre-liste" id="liste-klar"></div>
+        </section>
+
+        <section class="ordre-kolonne" id="kolonne-utkjoring">
+            <h2>Under utkjøring</h2>
+            <div class="ordre-liste" id="liste-utkjoring"></div>
         </section>
     </main>
 
